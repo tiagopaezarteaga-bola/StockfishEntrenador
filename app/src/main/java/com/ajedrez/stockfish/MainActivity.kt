@@ -35,8 +35,8 @@ class MainActivity : AppCompatActivity() {
         fun enviarComando(instancia: String, cmd: String) {
             try {
                 when (instancia) {
-                    "principal"    -> stdinPrincipal?.println(cmd)
-                    "clasificador" -> stdinClasificador?.println(cmd)
+                    "principal" -> { stdinPrincipal?.println(cmd); stdinPrincipal?.flush() }
+                    "clasificador" -> { stdinClasificador?.println(cmd); stdinClasificador?.flush() }
                 }
             } catch (e: Exception) {
                 val cb = if (instancia == "clasificador") "onLineaClasificador" else "onLineaPrincipal"
@@ -73,13 +73,23 @@ class MainActivity : AppCompatActivity() {
             .redirectErrorStream(false)
             .start()
 
-        val stdin = PrintWriter(proceso.outputStream.bufferedWriter(), true)
+        val stdin = PrintWriter(proceso.outputStream.bufferedWriter(), false)
 
         motorScope.launch {
+            var listoEnviado = false
             proceso.inputStream.bufferedReader().forEachLine { linea ->
-                if (linea.isNotBlank()) enviarLinea(callback, linea)
+                if (linea.isNotBlank()) {
+                    if (!listoEnviado && linea.trim() == "uciok") {
+                        listoEnviado = true
+                        enviarLinea(callback, "nativo_listo")
+                    }
+                    enviarLinea(callback, linea)
+                }
             }
         }
+
+        stdin.println("uci")
+        stdin.flush()
 
         return Pair(proceso, stdin)
     }
