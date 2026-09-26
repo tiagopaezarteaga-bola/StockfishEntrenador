@@ -3,6 +3,7 @@ package com.ajedrez.stockfish
 import android.annotation.SuppressLint
 import android.util.Log
 import android.os.Bundle
+import android.os.Environment
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -32,6 +33,19 @@ class MainActivity : AppCompatActivity() {
 
     private val motorScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    private val logFile: File by lazy {
+        val f = Environment.getExternalStoragePublicDirectory(
+            Environment.DIRECTORY_DOWNLOADS
+        ).resolve("ajedrez_debug.txt")
+        f.writeText("=== INICIO LOG ===\n")
+        f
+    }
+
+    private fun logM(msg: String) {
+        Log.d(TAG, msg)
+        try { logFile.appendText(msg + "\n") } catch (e: Exception) { Log.e(TAG, "logFile error: ${e.message}") }
+    }
+
     inner class PuenteMotor {
 
         @JavascriptInterface
@@ -60,26 +74,26 @@ class MainActivity : AppCompatActivity() {
 
     private fun prepararBinario(): File {
         val destino = File(filesDir, "stockfish")
-        Log.d(TAG, "Binario: ${destino.absolutePath} existe=${destino.exists()}")
+        logM("Binario: ${destino.absolutePath} existe=${destino.exists()}")
         if (!destino.exists()) {
             assets.open("stockfish").use { entrada ->
                 destino.outputStream().use { salida ->
                     entrada.copyTo(salida)
                 }
             }
-            Log.d(TAG, "Binario extraido OK")
+            logM("Binario extraido OK")
         }
         destino.setExecutable(true, true)
-        Log.d(TAG, "setExecutable OK canExecute=${destino.canExecute()}")
+        logM("setExecutable OK canExecute=${destino.canExecute()}")
         return destino
     }
 
     private fun lanzarMotor(binario: File, callback: String): Pair<Process, PrintWriter> {
-        Log.d(TAG, "[$callback] lanzando proceso")
+        logM("[$callback] lanzando proceso")
         val proceso = ProcessBuilder(binario.absolutePath)
             .redirectErrorStream(false)
             .start()
-        Log.d(TAG, "[$callback] proceso arrancado")
+        logM("[$callback] proceso arrancado")
 
         val stdin = PrintWriter(proceso.outputStream.bufferedWriter(), false)
 
@@ -87,19 +101,19 @@ class MainActivity : AppCompatActivity() {
             var listoEnviado = false
             proceso.inputStream.bufferedReader().forEachLine { linea ->
                 if (linea.isNotBlank()) {
-                    Log.d(TAG, "[$callback] << $linea")
+                    logM("[$callback] << $linea")
                     if (!listoEnviado && linea.trim() == "uciok") {
                         listoEnviado = true
-                        Log.d(TAG, "[$callback] uciok recibido, enviando nativo_listo")
+                        logM("[$callback] uciok recibido, enviando nativo_listo")
                         enviarLinea(callback, "nativo_listo")
                     }
                     enviarLinea(callback, linea)
                 }
             }
-            Log.d(TAG, "[$callback] stream cerrado")
+            logM("[$callback] stream cerrado")
         }
 
-        Log.d(TAG, "[$callback] enviando uci")
+        logM("[$callback] enviando uci")
         stdin.println("uci")
         stdin.flush()
 
@@ -120,7 +134,7 @@ class MainActivity : AppCompatActivity() {
                 stdinClasificador = sc
 
             } catch (e: Exception) {
-                Log.e(TAG, "Error iniciando motores", e)
+                logM("ERROR inicio: ${e.message}\n${e.stackTraceToString()}")
                 enviarLinea("onLineaPrincipal",    "info string ERROR inicio: ${e.message}")
                 enviarLinea("onLineaClasificador", "info string ERROR inicio: ${e.message}")
             }
