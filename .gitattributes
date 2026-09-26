@@ -1,0 +1,3 @@
+*.wasm -diff -text
+*.js -diff
+*.png -diff -text
