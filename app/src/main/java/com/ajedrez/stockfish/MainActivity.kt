@@ -10,54 +10,37 @@ import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewAssetLoader.AssetsPathHandler
-import fr.axl_lvy.stockfish.Stockfish
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.PrintWriter
 
-/**
- * Arquitectura del motor:
- *
- *   sfPrincipal  — Stockfish con NUM_HILOS reales. Maneja el juego y el análisis.
- *   sfClasificador — Stockfish independiente con NUM_HILOS reales. Clasifica puzzles
- *                    en background sin interferir con sfPrincipal.
- *
- * Dos instancias separadas = sin mezcla de líneas UCI, sin contención de estado.
- *
- * Puente JS ↔ Kotlin:
- *   JS → window.MotorNativo.enviarComando("p", cmd)   (p = "principal" | "clasificador")
- *   Kotlin → webView.evaluateJavascript("onLineaPrincipal(...)")
- *   Kotlin → webView.evaluateJavascript("onLineaClasificador(...)")
- */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
 
-    private var sfPrincipal: Stockfish?    = null
-    private var sfClasificador: Stockfish? = null
+    private var procPrincipal: Process?    = null
+    private var procClasificador: Process? = null
+
+    private var stdinPrincipal: PrintWriter?    = null
+    private var stdinClasificador: PrintWriter? = null
 
     private val motorScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    // ── Puente JS ↔ Kotlin ─────────────────────────────────────────────────
     inner class PuenteMotor {
 
-        /**
-         * JS llama: window.MotorNativo.enviarComando("principal",  "go infinite")
-         *           window.MotorNativo.enviarComando("clasificador", "go depth 12")
-         */
         @JavascriptInterface
         fun enviarComando(instancia: String, cmd: String) {
-            motorScope.launch {
-                try {
-                    when (instancia) {
-                        "principal"    -> sfPrincipal?.sendCommand(cmd)
-                        "clasificador" -> sfClasificador?.sendCommand(cmd)
-                    }
-                } catch (e: Exception) {
-                    val cb = if (instancia == "clasificador") "onLineaClasificador" else "onLineaPrincipal"
-                    enviarLinea(cb, "info string ERROR: ${e.message}")
+            try {
+                when (instancia) {
+                    "principal"    -> stdinPrincipal?.println(cmd)
+                    "clasificador" -> stdinClasificador?.println(cmd)
                 }
+            } catch (e: Exception) {
+                val cb = if (instancia == "clasificador") "onLineaClasificador" else "onLineaPrincipal"
+                enviarLinea(cb, "info string ERROR: ${e.message}")
             }
         }
 
@@ -65,7 +48,6 @@ class MainActivity : AppCompatActivity() {
         fun disponible(): Boolean = true
     }
 
-    // ── Enviar una línea UCI al callback JS correspondiente ─────────────────
     private fun enviarLinea(callback: String, linea: String) {
         val quoted = org.json.JSONObject.quote(linea)
         webView.post {
@@ -73,36 +55,57 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ── Arrancar las dos instancias ─────────────────────────────────────────
+    private fun prepararBinario(): File {
+        val destino = File(filesDir, "stockfish")
+        if (!destino.exists()) {
+            assets.open("stockfish").use { entrada ->
+                destino.outputStream().use { salida ->
+                    entrada.copyTo(salida)
+                }
+            }
+        }
+        destino.setExecutable(true, true)
+        return destino
+    }
+
+    private fun lanzarMotor(binario: File, callback: String): Pair<Process, PrintWriter> {
+        val proceso = ProcessBuilder(binario.absolutePath)
+            .redirectErrorStream(false)
+            .start()
+
+        val stdin = PrintWriter(proceso.outputStream.bufferedWriter(), true)
+
+        motorScope.launch {
+            proceso.inputStream.bufferedReader().forEachLine { linea ->
+                if (linea.isNotBlank()) enviarLinea(callback, linea)
+            }
+        }
+
+        return Pair(proceso, stdin)
+    }
+
     private fun iniciarMotores() {
         motorScope.launch {
-            // Motor principal
             try {
-                sfPrincipal = Stockfish().also { sf ->
-                    sf.start { linea ->
-                        if (linea.isNotBlank()) enviarLinea("onLineaPrincipal", linea)
-                    }
-                }
-                enviarLinea("onLineaPrincipal", "nativo_listo")
-            } catch (e: Exception) {
-                enviarLinea("onLineaPrincipal", "info string ERROR motor principal: ${e.message}")
-            }
+                val binario = prepararBinario()
 
-            // Motor clasificador (instancia completamente separada)
-            try {
-                sfClasificador = Stockfish().also { sf ->
-                    sf.start { linea ->
-                        if (linea.isNotBlank()) enviarLinea("onLineaClasificador", linea)
-                    }
-                }
+                val (pp, sp) = lanzarMotor(binario, "onLineaPrincipal")
+                procPrincipal  = pp
+                stdinPrincipal = sp
+                enviarLinea("onLineaPrincipal", "nativo_listo")
+
+                val (pc, sc) = lanzarMotor(binario, "onLineaClasificador")
+                procClasificador  = pc
+                stdinClasificador = sc
                 enviarLinea("onLineaClasificador", "nativo_listo")
+
             } catch (e: Exception) {
-                enviarLinea("onLineaClasificador", "info string ERROR motor clasificador: ${e.message}")
+                enviarLinea("onLineaPrincipal",    "info string ERROR inicio: ${e.message}")
+                enviarLinea("onLineaClasificador", "info string ERROR inicio: ${e.message}")
             }
         }
     }
 
-    // ── Lifecycle ────────────────────────────────────────────────────────────
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -116,10 +119,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(webView)
 
         webView.settings.apply {
-            javaScriptEnabled = true
-            domStorageEnabled = true
-            allowFileAccess = false
-            allowContentAccess = false
+            javaScriptEnabled    = true
+            domStorageEnabled    = true
+            allowFileAccess      = false
+            allowContentAccess   = false
         }
 
         webView.addJavascriptInterface(PuenteMotor(), "MotorNativo")
@@ -150,8 +153,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        try { sfPrincipal?.quit()    } catch (_: Exception) {}
-        try { sfClasificador?.quit() } catch (_: Exception) {}
+        try { stdinPrincipal?.println("quit") }    catch (_: Exception) {}
+        try { stdinClasificador?.println("quit") } catch (_: Exception) {}
+        try { procPrincipal?.destroy() }           catch (_: Exception) {}
+        try { procClasificador?.destroy() }        catch (_: Exception) {}
     }
 
     @Deprecated("Deprecated in Java")

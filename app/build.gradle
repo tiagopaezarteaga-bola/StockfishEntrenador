@@ -33,14 +33,7 @@ android {
 }
 
 dependencies {
-    // Motor Stockfish 18 nativo ARM64/ARMv7/x86_64.
-    // Compilada con Kotlin 2.3 — requiere compilador Kotlin 2.x en el proyecto.
-    implementation 'fr.axl-lvy:stockfish-multiplatform-lite:0.1.0'
-
-    // Coroutines: viene transitivamente desde stockfish-multiplatform-lite,
-    // pero se declara explícitamente para fijar la versión compatible con Kotlin 2.1.
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
-
     implementation 'androidx.webkit:webkit:1.11.0'
     implementation 'androidx.appcompat:appcompat:1.7.0'
 }
