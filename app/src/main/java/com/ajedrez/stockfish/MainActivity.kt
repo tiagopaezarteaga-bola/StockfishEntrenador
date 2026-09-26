@@ -43,7 +43,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun logM(msg: String) {
         Log.d(TAG, msg)
-        try { logFile.appendText(msg + "\n") } catch (e: Exception) { Log.e(TAG, "logFile error: ${e.message}") }
+        try { logFile.appendText(msg + "\n") } catch (e: Exception) {}
     }
 
     inner class PuenteMotor {
@@ -89,10 +89,28 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun lanzarMotor(binario: File, callback: String): Pair<Process, PrintWriter> {
-        logM("[$callback] lanzando proceso")
-        val proceso = ProcessBuilder(binario.absolutePath)
-            .redirectErrorStream(false)
-            .start()
+        logM("[$callback] lanzando proceso desde nativeLibraryDir")
+
+        // Android 14 bloquea exec en filesDir (W^X policy)
+        // Copiamos el binario a nativeLibraryDir que sí permite ejecución
+        val nativeDir = File(applicationInfo.nativeLibraryDir)
+        val binNative = File(nativeDir, "libstockfish.so")
+        logM("[$callback] nativeLibraryDir: ${nativeDir.absolutePath} existe=${binNative.exists()}")
+
+        // Si no está en nativeLibraryDir, usamos el truco de la shell
+        val proceso = if (binNative.exists()) {
+            logM("[$callback] ejecutando desde nativeLibraryDir")
+            ProcessBuilder(binNative.absolutePath)
+                .redirectErrorStream(false)
+                .start()
+        } else {
+            // Alternativa: ejecutar via /system/bin/sh
+            logM("[$callback] ejecutando via sh")
+            ProcessBuilder("/system/bin/sh", "-c", binario.absolutePath)
+                .redirectErrorStream(false)
+                .start()
+        }
+
         logM("[$callback] proceso arrancado")
 
         val stdin = PrintWriter(proceso.outputStream.bufferedWriter(), false)
