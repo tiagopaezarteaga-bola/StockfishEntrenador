@@ -72,46 +72,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun prepararBinario(): File {
-        val destino = File(filesDir, "stockfish")
-        logM("Binario: ${destino.absolutePath} existe=${destino.exists()}")
-        if (!destino.exists()) {
-            assets.open("stockfish").use { entrada ->
-                destino.outputStream().use { salida ->
-                    entrada.copyTo(salida)
-                }
-            }
-            logM("Binario extraido OK")
+    private fun obtenerBinario(): File {
+        val binNative = File(applicationInfo.nativeLibraryDir, "libstockfish.so")
+        logM("nativeLibraryDir binario: ${binNative.absolutePath} existe=${binNative.exists()} canExecute=${binNative.canExecute()}")
+        if (!binNative.exists()) {
+            throw IllegalStateException("libstockfish.so no encontrado en nativeLibraryDir")
         }
-        destino.setExecutable(true, true)
-        logM("setExecutable OK canExecute=${destino.canExecute()}")
-        return destino
+        return binNative
     }
 
     private fun lanzarMotor(binario: File, callback: String): Pair<Process, PrintWriter> {
-        logM("[$callback] lanzando proceso desde nativeLibraryDir")
+        logM("[$callback] lanzando: ${binario.absolutePath}")
 
-        // Android 14 bloquea exec en filesDir (W^X policy)
-        // Copiamos el binario a nativeLibraryDir que sí permite ejecución
-        val nativeDir = File(applicationInfo.nativeLibraryDir)
-        val binNative = File(nativeDir, "libstockfish.so")
-        logM("[$callback] nativeLibraryDir: ${nativeDir.absolutePath} existe=${binNative.exists()}")
+        val proceso = ProcessBuilder(binario.absolutePath)
+            .redirectErrorStream(false)
+            .start()
 
-        // Si no está en nativeLibraryDir, usamos el truco de la shell
-        val proceso = if (binNative.exists()) {
-            logM("[$callback] ejecutando desde nativeLibraryDir")
-            ProcessBuilder(binNative.absolutePath)
-                .redirectErrorStream(false)
-                .start()
-        } else {
-            // Alternativa: ejecutar via /system/bin/sh
-            logM("[$callback] ejecutando via sh")
-            ProcessBuilder("/system/bin/sh", "-c", binario.absolutePath)
-                .redirectErrorStream(false)
-                .start()
-        }
-
-        logM("[$callback] proceso arrancado")
+        logM("[$callback] proceso arrancado PID=${proceso.pid()}")
 
         val stdin = PrintWriter(proceso.outputStream.bufferedWriter(), false)
 
@@ -128,7 +105,7 @@ class MainActivity : AppCompatActivity() {
                     enviarLinea(callback, linea)
                 }
             }
-            logM("[$callback] stream cerrado")
+            logM("[$callback] stream cerrado exitCode=${proceso.exitValue()}")
         }
 
         logM("[$callback] enviando uci")
@@ -141,7 +118,7 @@ class MainActivity : AppCompatActivity() {
     private fun iniciarMotores() {
         motorScope.launch {
             try {
-                val binario = prepararBinario()
+                val binario = obtenerBinario()
 
                 val (pp, sp) = lanzarMotor(binario, "onLineaPrincipal")
                 procPrincipal  = pp

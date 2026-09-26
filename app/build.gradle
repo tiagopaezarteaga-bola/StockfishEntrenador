@@ -7,6 +7,10 @@ android {
     namespace 'com.ajedrez.stockfish'
     compileSdk 34
 
+    packagingOptions {
+        doNotStrip "**/libstockfish.so"
+    }
+
     defaultConfig {
         applicationId "com.ajedrez.stockfish"
         minSdk 26
