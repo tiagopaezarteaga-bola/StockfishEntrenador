@@ -9,14 +9,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: ''
+
+      - name: Install SDK platform
+        run: |
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
       - name: Build Debug APK
-        run: gradle assembleDebug
+        run: |
+          export ANDROID_HOME=$ANDROID_SDK_ROOT
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          gradle assembleDebug
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
