@@ -1,6 +1,0 @@
-// Build script raíz: declara los plugins (con versión) que usan los
-// módulos, sin aplicarlos aquí (apply false). El módulo app/ los aplica.
-plugins {
-    id 'com.android.application' version '8.5.2' apply false
-    id 'org.jetbrains.kotlin.android' version '1.9.24' apply false
-}
