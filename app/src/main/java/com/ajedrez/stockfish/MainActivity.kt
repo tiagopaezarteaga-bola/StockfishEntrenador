@@ -61,6 +61,7 @@ class MainActivity : AppCompatActivity() {
     private fun prepararBinario(): File {
         val destino = File(filesDir, "stockfish")
         Log.d(TAG, "Binario: ${destino.absolutePath} existe=${destino.exists()}")
+        if (!destino.exists()) {
             assets.open("stockfish").use { entrada ->
                 destino.outputStream().use { salida ->
                     entrada.copyTo(salida)
