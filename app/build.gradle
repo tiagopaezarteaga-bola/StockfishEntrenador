@@ -1,0 +1,56 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.ajedrez.stockfish'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.ajedrez.stockfish"
+        minSdk 26
+        targetSdk 34
+        versionCode 2
+        versionName "2.0-nativo"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            // El workflow de GitHub Actions compila esta variante (assembleDebug).
+        }
+    }
+
+    // Ya no necesitamos empaquetar .js ni .wasm del motor.
+    // Se deja la entrada 'js' por si index.html sigue referenciando stockfish-19.js
+    // en la ruta del navegador de escritorio (no APK), pero el .wasm de 99 MB
+    // puede borrarse del repo — se comenta el noCompress para que no falle si
+    // alguno de los dos archivos se elimina en el futuro.
+    // androidResources { noCompress += ['wasm', 'js'] }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+}
+
+dependencies {
+    // Motor Stockfish 18 nativo ARM64/ARMv7/x86_64 con JNI listo.
+    // Maven Central: fr.axl-lvy:stockfish-multiplatform-lite:0.1.0
+    // "lite" = NNUE embebida en formato reducido (suficiente para análisis normal).
+    // Cambiá a "stockfish-multiplatform" (sin -lite) si querés la red NNUE completa.
+    implementation 'fr.axl-lvy:stockfish-multiplatform-lite:0.1.0'
+
+    // Coroutines para el hilo del motor (no bloquear el hilo principal ni WebView).
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+
+    implementation 'androidx.webkit:webkit:1.11.0'
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+}
