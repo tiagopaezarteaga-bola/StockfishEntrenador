@@ -73,12 +73,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun obtenerBinario(): File {
-        val binNative = File(applicationInfo.nativeLibraryDir, "libstockfish.so")
-        logM("nativeLibraryDir binario: ${binNative.absolutePath} existe=${binNative.exists()} canExecute=${binNative.canExecute()}")
-        if (!binNative.exists()) {
-            throw IllegalStateException("libstockfish.so no encontrado en nativeLibraryDir")
+        val destino = File(codeCacheDir, "stockfish")
+        if (!destino.exists() || destino.length() == 0L) {
+            logM("Copiando stockfish desde assets a codeCacheDir...")
+            assets.open("stockfish").use { input ->
+                destino.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            destino.setExecutable(true, true)
+            logM("Copia completada, size=${destino.length()}")
         }
-        return binNative
+        logM("binario: existe=${destino.exists()}, size=${destino.length()}, path=${destino.absolutePath}")
+        return destino
     }
 
     private fun lanzarMotor(binario: File, callback: String): Pair<Process, PrintWriter> {
