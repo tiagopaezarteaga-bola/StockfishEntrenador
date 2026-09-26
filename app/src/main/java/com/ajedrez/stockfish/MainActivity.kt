@@ -88,7 +88,7 @@ class MainActivity : AppCompatActivity() {
             .redirectErrorStream(false)
             .start()
 
-        logM("[$callback] proceso arrancado PID=${proceso.pid()}")
+        logM("[$callback] proceso arrancado")
 
         val stdin = PrintWriter(proceso.outputStream.bufferedWriter(), false)
 
