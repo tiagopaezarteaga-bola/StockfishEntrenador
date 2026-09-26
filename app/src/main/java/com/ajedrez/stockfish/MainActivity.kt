@@ -1,6 +1,7 @@
 package com.ajedrez.stockfish
 
 import android.annotation.SuppressLint
+import android.util.Log
 import android.os.Bundle
 import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
@@ -18,6 +19,8 @@ import java.io.File
 import java.io.PrintWriter
 
 class MainActivity : AppCompatActivity() {
+
+    companion object { const val TAG = "AjedrezMotor" }
 
     private lateinit var webView: WebView
 
@@ -57,21 +60,25 @@ class MainActivity : AppCompatActivity() {
 
     private fun prepararBinario(): File {
         val destino = File(filesDir, "stockfish")
-        if (!destino.exists()) {
+        Log.d(TAG, "Binario: ${destino.absolutePath} existe=${destino.exists()}")
             assets.open("stockfish").use { entrada ->
                 destino.outputStream().use { salida ->
                     entrada.copyTo(salida)
                 }
             }
+            Log.d(TAG, "Binario extraido OK")
         }
         destino.setExecutable(true, true)
+        Log.d(TAG, "setExecutable OK canExecute=${destino.canExecute()}")
         return destino
     }
 
     private fun lanzarMotor(binario: File, callback: String): Pair<Process, PrintWriter> {
+        Log.d(TAG, "[$callback] lanzando proceso")
         val proceso = ProcessBuilder(binario.absolutePath)
             .redirectErrorStream(false)
             .start()
+        Log.d(TAG, "[$callback] proceso arrancado")
 
         val stdin = PrintWriter(proceso.outputStream.bufferedWriter(), false)
 
@@ -79,15 +86,18 @@ class MainActivity : AppCompatActivity() {
             var listoEnviado = false
             proceso.inputStream.bufferedReader().forEachLine { linea ->
                 if (linea.isNotBlank()) {
-                    if (!listoEnviado && linea.trim() == "uciok") {
+                    Log.d(TAG, "[$callback] << $linea")
                         listoEnviado = true
+                        Log.d(TAG, "[$callback] uciok recibido, enviando nativo_listo")
                         enviarLinea(callback, "nativo_listo")
                     }
                     enviarLinea(callback, linea)
                 }
             }
+            Log.d(TAG, "[$callback] stream cerrado")
         }
 
+        Log.d(TAG, "[$callback] enviando uci")
         stdin.println("uci")
         stdin.flush()
 
@@ -102,14 +112,13 @@ class MainActivity : AppCompatActivity() {
                 val (pp, sp) = lanzarMotor(binario, "onLineaPrincipal")
                 procPrincipal  = pp
                 stdinPrincipal = sp
-                enviarLinea("onLineaPrincipal", "nativo_listo")
 
                 val (pc, sc) = lanzarMotor(binario, "onLineaClasificador")
                 procClasificador  = pc
                 stdinClasificador = sc
-                enviarLinea("onLineaClasificador", "nativo_listo")
 
             } catch (e: Exception) {
+                Log.e(TAG, "Error iniciando motores", e)
                 enviarLinea("onLineaPrincipal",    "info string ERROR inicio: ${e.message}")
                 enviarLinea("onLineaClasificador", "info string ERROR inicio: ${e.message}")
             }
