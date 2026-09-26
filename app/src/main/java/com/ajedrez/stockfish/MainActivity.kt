@@ -38,7 +38,7 @@ class MainActivity : AppCompatActivity() {
         fun enviarComando(instancia: String, cmd: String) {
             try {
                 when (instancia) {
-                    "principal" -> { stdinPrincipal?.println(cmd); stdinPrincipal?.flush() }
+                    "principal"    -> { stdinPrincipal?.println(cmd);    stdinPrincipal?.flush()    }
                     "clasificador" -> { stdinClasificador?.println(cmd); stdinClasificador?.flush() }
                 }
             } catch (e: Exception) {
@@ -88,6 +88,7 @@ class MainActivity : AppCompatActivity() {
             proceso.inputStream.bufferedReader().forEachLine { linea ->
                 if (linea.isNotBlank()) {
                     Log.d(TAG, "[$callback] << $linea")
+                    if (!listoEnviado && linea.trim() == "uciok") {
                         listoEnviado = true
                         Log.d(TAG, "[$callback] uciok recibido, enviando nativo_listo")
                         enviarLinea(callback, "nativo_listo")
