@@ -43,6 +43,12 @@ public class MainActivity extends AppCompatActivity {
         
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
+                try {
+            java.lang.reflect.Method method = WebSettings.class.getMethod("setSharedArrayBufferEnabled", boolean.class);
+            method.invoke(settings, true);
+        } catch (Exception e) {
+            // Si falla, no pasa nada, continuamos
+                }
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
