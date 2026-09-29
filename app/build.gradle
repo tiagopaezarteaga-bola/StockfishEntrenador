@@ -3,12 +3,12 @@ apply plugin: 'com.chaquo.python'
 
 android {
     namespace 'com.example.ajedrezapk'
-    compileSdk 34
+    compileSdk 33  // Cambiado de 34 a 33
 
     defaultConfig {
         applicationId "com.example.ajedrezapk"
         minSdk 24
-        targetSdk 34
+        targetSdk 33  // Cambiado de 34 a 33
         versionCode 1
         versionName "1.0"
         
@@ -18,17 +18,13 @@ android {
         
         python {
             version "3.11"
-            buildPython "/usr/bin/python3" // En GitHub Actions usa el python del sistema
-            pip {
-                // No necesitamos instalar nada con pip, tu script usa librerías estándar
-            }
+            buildPython "/usr/bin/python3"
         }
     }
 
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
     compileOptions {
@@ -39,5 +35,4 @@ android {
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'androidx.webkit:webkit:1.8.0'
 }
