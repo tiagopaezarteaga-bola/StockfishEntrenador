@@ -7,7 +7,10 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import androidx.appcompat.app.AppCompatActivity;
-import chaquopy.chaquopy.JavaPyObject;
+
+import com.chaquo.python.Python;
+import com.chaquo.python.PyObject;
+import com.chaquo.python.AndroidPlatform;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -16,6 +19,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Inicializar el motor Python (Chaquopy)
+        if (!Python.isStarted()) {
+            Python.start(new AndroidPlatform(this));
+        }
         
         webView = new WebView(this);
         setContentView(webView);
@@ -26,23 +34,24 @@ public class MainActivity extends AppCompatActivity {
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
-        // Soporte para SharedArrayBuffer (requerido por Stockfish WASM)
-        settings.setSharedArrayBufferEnabled(true); 
+        // No necesitamos setSharedArrayBufferEnabled, 
+        // las cabeceras HTTP de tu servidor Python lo activan automáticamente.
         
         webView.setWebViewClient(new WebViewClient());
 
-        // Iniciar el servidor Python en segundo plano
+        // Iniciar el servidor Python en un hilo en segundo plano
         new Thread(() -> {
             try {
-                // Importar y ejecutar el script de Python
-                JavaPyObject serverModule = JavaPyObject.importModule("ajedrez_servidor");
+                Python py = Python.getInstance();
+                PyObject serverModule = py.getModule("ajedrez_servidor");
+                // Llama a la función que añadiste al final de tu script
                 serverModule.callAttr("iniciar_servidor_android");
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }).start();
 
-        // Esperar un segundo a que el servidor arranque y luego cargar la URL
+        // Esperar 1.5 segundos a que el servidor Python arranque y luego cargar la URL
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             webView.loadUrl("http://localhost:8000");
         }, 1500);
