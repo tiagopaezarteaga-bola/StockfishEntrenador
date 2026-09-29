@@ -16,15 +16,23 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+
+      - name: Accept Android Licenses
+        run: |
+          mkdir -p "$ANDROID_HOME/licenses" || true
+          echo "24333f8a63b6825ea9c5514f741f8823c2d9e6c1" > "$ANDROID_HOME/licenses/android-sdk-license" || true
+          echo "84831b9409646a244be87447c5d4f23be2ba6e9e" >> "$ANDROID_HOME/licenses/android-sdk-preview-license" || true
           
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.4' # Instala Gradle 8.4 automáticamente en el servidor
         
       - name: Build Release APK
-        run: ./gradlew assembleRelease
+        run: gradle assembleRelease # Usa el comando global 'gradle' en lugar de './gradlew'
         
       - name: Upload APK
-        uses: actions/upload-artifact@v4  # <-- ¡Cambiado de v3 a v4!
+        uses: actions/upload-artifact@v4
         with:
           name: app-release
           path: app/build/outputs/apk/release/*.apk
