@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 apply plugin: 'com.chaquo.python'
 
 android {
-    namespace 'com.example.ajedrezapk'
+    namespace 'com.example'
     compileSdk 33  // Cambiado de 34 a 33
 
     defaultConfig {
