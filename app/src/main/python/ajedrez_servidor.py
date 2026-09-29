@@ -3922,7 +3922,7 @@ class MiManejador(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'text/html; charset=utf-8')
             # CABECERAS REQUERIDAS POR STOCKFISH WASM
             self.send_header('Cross-Origin-Opener-Policy', 'same-origin')
-            self.send_header('Cross-Origin-Embedder-Policy', 'require-corp')
+            self.send_header('Cross-Origin-Embedder-Policy', 'credentialless')
             self.end_headers()
             self.wfile.write(HTML.encode('utf-8'))
 
