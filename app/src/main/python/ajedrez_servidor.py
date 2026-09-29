@@ -17,6 +17,7 @@ import sys
 import json
 import base64
 import webbrowser
+import os
 APP_FILES_DIR = ""
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -3950,29 +3951,17 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 class MiManejador(BaseHTTPRequestHandler):
     """Servidor HTTP que inyecta las cabeceras COOP/COEP para SharedArrayBuffer"""
     def do_GET(self):
-               def do_POST(self):
-        """Guarda los archivos JS y WASM en el teléfono para no pedirlos otra vez"""
-        if self.path.startswith('/upload') and APP_FILES_DIR:
-            import urllib.parse
-            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-            filename = query.get('name', [''])[0]
-            if filename:
-                content_length = int(self.headers['Content-Length'])
-                file_data = self.rfile.read(content_length)
-                filepath = os.path.join(APP_FILES_DIR, filename)
-                with open(filepath, 'wb') as f:
-                    f.write(file_data)
-                self.send_response(200)
-                self.end_headers()
-                self.wfile.write(b"OK")
-                return
-        self.send_error(404)
         if self.path == '/icon.png':
             self.send_response(200)
             self.send_header('Content-type', 'image/png')
             self.end_headers()
             self.wfile.write(base64.b64decode(ICON_PNG_B64))
-                elif self.path == '/stockfish.js' and APP_FILES_DIR:
+        elif self.path == '/manifest.json':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(MANIFEST.encode('utf-8'))
+        elif self.path == '/stockfish.js' and APP_FILES_DIR:
             js_path = os.path.join(APP_FILES_DIR, 'stockfish.js')
             if os.path.exists(js_path):
                 self.send_response(200)
@@ -3997,19 +3986,31 @@ class MiManejador(BaseHTTPRequestHandler):
             status = '{"js": %s, "wasm": %s}' % ('true' if js_exists else 'false', 'true' if wasm_exists else 'false')
             self.wfile.write(status.encode('utf-8'))
             return
-        elif self.path == '/manifest.json':
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            self.wfile.write(MANIFEST.encode('utf-8'))
         else:
             self.send_response(200)
             self.send_header('Content-type', 'text/html; charset=utf-8')
-            # CABECERAS REQUERIDAS POR STOCKFISH WASM
             self.send_header('Cross-Origin-Opener-Policy', 'same-origin')
             self.send_header('Cross-Origin-Embedder-Policy', 'credentialless')
             self.end_headers()
             self.wfile.write(HTML.encode('utf-8'))
+
+    def do_POST(self):
+        """Guarda los archivos JS y WASM en el teléfono para no pedirlos otra vez"""
+        if self.path.startswith('/upload') and APP_FILES_DIR:
+            import urllib.parse
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            filename = query.get('name', [''])[0]
+            if filename:
+                content_length = int(self.headers['Content-Length'])
+                file_data = self.rfile.read(content_length)
+                filepath = os.path.join(APP_FILES_DIR, filename)
+                with open(filepath, 'wb') as f:
+                    f.write(file_data)
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"OK")
+                return
+        self.send_error(404)
 
 def iniciar_servidor_android(app_files_dir=""):
     """Función llamada desde Java (Chaquopy) para arrancar el servidor"""
