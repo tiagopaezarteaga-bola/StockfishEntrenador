@@ -33,5 +33,6 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug  # <-- CAMBIADO EL NOMBRE
-          path: app/build/outputs/apk/debug/*.apk  # <-- RUTA A LA CARPETA DEBUG
+          name: app-debug
+          path: app/build/outputs/apk/debug/*.apk
+          compression-level: 0  # <-- AÑADE ESTA LÍNEA
