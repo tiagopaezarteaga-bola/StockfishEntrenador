@@ -17,6 +17,7 @@ import sys
 import json
 import base64
 import webbrowser
+APP_FILES_DIR = ""
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 # Puerto fijo: si cambia, el icono de "Agregar a pantalla de inicio" queda
