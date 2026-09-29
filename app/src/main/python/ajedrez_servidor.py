@@ -418,6 +418,10 @@ HTML = r"""<!DOCTYPE html>
 </div>
 
 <script>
+// Hack para Android WebView: Obliga a la página a pensar que está aislada
+if (typeof window.crossOriginIsolated === 'undefined' || !window.crossOriginIsolated) {
+    try { Object.defineProperty(window, 'crossOriginIsolated', { value: true }); } catch(e) {}
+}
 // ── chess.js embebido ─────────────────────────────────
 /*
  * Copyright (c) 2020, Jeff Hlywa (jhlywa@gmail.com)
