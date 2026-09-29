@@ -226,12 +226,12 @@ HTML = r"""<!DOCTYPE html>
     Puedes elegirlos uno por uno o soltar ambos a la vez.</p>
     <div class="upload-zone" id="zonaJs">
       <div class="icon">①</div>
-      <p id="lblJs">Toca aquí para seleccionar <strong>stockfish-19.js</strong></p>
-      <input type="file" id="fileJs" accept=".js">
+      <p id="lblJs">Toca aquí para seleccionar <strong>stockfish.js</strong> (cualquier versión)</p>
+      <input type="file" id="fileJs">
     </div>
     <div class="upload-zone" id="zonaWasm">
       <div class="icon">②</div>
-      <p id="lblWasm">Toca aquí para seleccionar <strong>stockfish-19.wasm</strong> (~99 MB)</p>
+      <p id="lblWasm">Toca aquí para seleccionar <strong>stockfish.wasm</strong> (cualquier versión ~90MB)</p>
       <input type="file" id="fileWasm">
     </div>
     <div class="status-box" id="uploadStatus" style="display:none;">
