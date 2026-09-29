@@ -27,12 +27,14 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // Iniciar el servidor Python en segundo plano
+                // Iniciar el servidor Python en segundo plano
         new Thread(() -> {
             try {
                 Python py = Python.getInstance();
                 PyObject serverModule = py.getModule("ajedrez_servidor");
-                serverModule.callAttr("iniciar_servidor_android");
+                // Pasamos la ruta de archivos interna de la app a Python
+                String filesDir = getFilesDir().getAbsolutePath();
+                serverModule.callAttr("iniciar_servidor_android", filesDir);
             } catch (Exception e) {
                 e.printStackTrace();
                 runOnUiThread(() -> {
@@ -40,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
                 });
             }
         }).start();
-
+        
         // Esperar 3 segundos a que el servidor arranque y luego abrir Chrome Custom Tab
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             String url = "http://localhost:8000";
