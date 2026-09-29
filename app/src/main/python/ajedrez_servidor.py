@@ -223,7 +223,7 @@ HTML = r"""<!DOCTYPE html>
 <div id="uploadScreen">
   <div class="upload-card" id="uploadCard">
     <div class="aviso" id="avisoIso" style="display:none;"></div>
-    <p>Sube los <strong>dos archivos</strong> de Stockfish 19 (los dos son necesarios).<br>
+    <p>Sube los <strong>dos archivos</strong> de Stockfish (los dos son necesarios).<br>
     Puedes elegirlos uno por uno o soltar ambos a la vez.</p>
     <div class="upload-zone" id="zonaJs">
       <div class="icon">①</div>
