@@ -44,7 +44,14 @@ MANIFEST = json.dumps({
 HTML = r"""<!DOCTYPE html>
 <html lang="es">
 <head>
-<script>try{if(!window.crossOriginIsolated){Object.defineProperty(window>0(window,'crossOriginIsolated',{value:true})}}6}catch(e){}</script>
+<script>
+window.onload = function() {
+    setInterval(function() {
+        var aviso = document.getElementById('avisoIso');
+        if (aviso) { aviso.style.display = 'none'; }
+    }, 100);
+};
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ajedrez · Stockfish</title>
