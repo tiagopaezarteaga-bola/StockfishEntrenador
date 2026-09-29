@@ -3919,6 +3919,23 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 class MiManejador(BaseHTTPRequestHandler):
     """Servidor HTTP que inyecta las cabeceras COOP/COEP para SharedArrayBuffer"""
     def do_GET(self):
+               def do_POST(self):
+        """Guarda los archivos JS y WASM en el teléfono para no pedirlos otra vez"""
+        if self.path.startswith('/upload') and APP_FILES_DIR:
+            import urllib.parse
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            filename = query.get('name', [''])[0]
+            if filename:
+                content_length = int(self.headers['Content-Length'])
+                file_data = self.rfile.read(content_length)
+                filepath = os.path.join(APP_FILES_DIR, filename)
+                with open(filepath, 'wb') as f:
+                    f.write(file_data)
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"OK")
+                return
+        self.send_error(404)
         if self.path == '/icon.png':
             self.send_response(200)
             self.send_header('Content-type', 'image/png')
@@ -3938,8 +3955,21 @@ class MiManejador(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(HTML.encode('utf-8'))
 
-def iniciar_servidor_android():
+def iniciar_servidor_android(app_files_dir=""):
     """Función llamada desde Java (Chaquopy) para arrancar el servidor"""
-    servidor = ThreadingHTTPServer(('localhost', PUERTO_FIJO), MiManejador)
-    print(f"Servidor corriendo en http://localhost:{PUERTO_FIJO}")
-    servidor.serve_forever()
+    import socket
+    global APP_FILES_DIR
+    APP_FILES_DIR = app_files_dir
+    
+    # Revisar si el puerto ya está en uso
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        if s.connect_ex(('localhost', PUERTO_FIJO)) == 0:
+            print(f"El puerto {PUERTO_FIJO} ya está en uso. El servidor ya está corriendo.")
+            return # No arranca uno nuevo, usa el existente
+
+    try:
+        servidor = ThreadingHTTPServer(('localhost', PUERTO_FIJO), MiManejador)
+        print(f"Servidor corriendo en http://localhost:{PUERTO_FIJO}")
+        servidor.serve_forever()
+    except OSError as e:
+        print(f"Error inesperado al iniciar: {e}")
