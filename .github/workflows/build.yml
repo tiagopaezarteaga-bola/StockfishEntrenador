@@ -17,12 +17,12 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Accept Android SDK Licenses
+      - name: Setup Android SDK and Accept Licenses
         run: |
-          mkdir -p "$ANDROID_HOME/licenses" || true
-          echo "24333f8a63b6825ea9c5514f741f8823c2d9e6c1" > "$ANDROID_HOME/licenses/android-sdk-license" || true
-          echo "84831b9409646a244be87447c5d4f23be2ba6e9e" >> "$ANDROID_HOME/licenses/android-sdk-preview-license" || true
-          echo "d975f751698a77e662f1cd567a4b578f6a922226" > "$ANDROID_HOME/licenses/intel-android-extra-license" || true
+          # Acepta todas las licencias automáticamente
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
+          # Instala los paquetes específicos que necesita Gradle para el SDK 33
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-33" "build-tools;33.0.1"
           
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
