@@ -46,6 +46,36 @@ HTML = r"""<!DOCTYPE html>
 <html lang="es">
 <head>
 <script>
+// --- INICIO LOGICA DE GUARDADO AUTOMATICO ---
+window.onload = function() {
+    // 1. Verificar si ya existen en el servidor
+    fetch('/check_files').then(r => r.json()).then(data => {
+        if (data.js && data.wasm) {
+            // Si existen, ocultar pantalla de carga y simular que se subieron
+            document.getElementById('uploadScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'flex';
+            // Aquí tu app debería arrancar el motor automáticamente. 
+            // Si no lo hace, el usuario solo recarga.
+        }
+    });
+
+    // 2. Interceptar cuando el usuario sube un archivo para guardarlo en el servidor
+    document.getElementById('fileJs').addEventListener('change', function(e) {
+        if (e.target.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(ev) { fetch('/upload?name=stockfish.js', { method: 'POST', body: new Uint8Array(ev.target.result) }); };
+            reader.readAsArrayBuffer(e.target.files[0]);
+        }
+    });
+    document.getElementById('fileWasm').addEventListener('change', function(e) {
+        if (e.target.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(ev) { fetch('/upload?name=stockfish.wasm', { method: 'POST', body: new Uint8Array(ev.target.result) }); };
+            reader.readAsArrayBuffer(e.target.files[0]);
+        }
+    });
+};
+// --- FIN LOGICA DE GUARDADO AUTOMATICO ---
 window.onload = function() {
     setInterval(function() {
         var aviso = document.getElementById('avisoIso');
@@ -3942,6 +3972,31 @@ class MiManejador(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'image/png')
             self.end_headers()
             self.wfile.write(base64.b64decode(ICON_PNG_B64))
+                elif self.path == '/stockfish.js' and APP_FILES_DIR:
+            js_path = os.path.join(APP_FILES_DIR, 'stockfish.js')
+            if os.path.exists(js_path):
+                self.send_response(200)
+                self.send_header('Content-type', 'application/javascript')
+                self.end_headers()
+                with open(js_path, 'rb') as f: self.wfile.write(f.read())
+                return
+        elif self.path == '/stockfish.wasm' and APP_FILES_DIR:
+            wasm_path = os.path.join(APP_FILES_DIR, 'stockfish.wasm')
+            if os.path.exists(wasm_path):
+                self.send_response(200)
+                self.send_header('Content-type', 'application/wasm')
+                self.end_headers()
+                with open(wasm_path, 'rb') as f: self.wfile.write(f.read())
+                return
+        elif self.path == '/check_files':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            js_exists = os.path.exists(os.path.join(APP_FILES_DIR, 'stockfish.js')) if APP_FILES_DIR else False
+            wasm_exists = os.path.exists(os.path.join(APP_FILES_DIR, 'stockfish.wasm')) if APP_FILES_DIR else False
+            status = '{"js": %s, "wasm": %s}' % ('true' if js_exists else 'false', 'true' if wasm_exists else 'false')
+            self.wfile.write(status.encode('utf-8'))
+            return
         elif self.path == '/manifest.json':
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
