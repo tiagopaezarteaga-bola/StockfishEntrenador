@@ -3898,3 +3898,36 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# ── AÑADIR AL FINAL DE ajedrez_servidor.py ──
+
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+class MiManejador(BaseHTTPRequestHandler):
+    """Servidor HTTP que inyecta las cabeceras COOP/COEP para SharedArrayBuffer"""
+    def do_GET(self):
+        if self.path == '/icon.png':
+            self.send_response(200)
+            self.send_header('Content-type', 'image/png')
+            self.end_headers()
+            self.wfile.write(base64.b64decode(ICON_PNG_B64))
+        elif self.path == '/manifest.json':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(MANIFEST.encode('utf-8'))
+        else:
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html; charset=utf-8')
+            # CABECERAS REQUERIDAS POR STOCKFISH WASM
+            self.send_header('Cross-Origin-Opener-Policy', 'same-origin')
+            self.send_header('Cross-Origin-Embedder-Policy', 'require-corp')
+            self.end_headers()
+            self.wfile.write(HTML.encode('utf-8'))
+
+def iniciar_servidor_android():
+    """Función llamada desde Java (Chaquopy) para arrancar el servidor"""
+    servidor = ThreadingHTTPServer(('localhost', PUERTO_FIJO), MiManejador)
+    print(f"Servidor corriendo en http://localhost:{PUERTO_FIJO}")
+    servidor.serve_forever()
