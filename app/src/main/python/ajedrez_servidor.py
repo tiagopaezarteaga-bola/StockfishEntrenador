@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Servidor local para "Ajedrez · Stockfish 19".
+Servidor local para "Ajedrez · Stockfish".
 
 Uso:   python ajedrez_servidor.py          (puerto 8000)
        python ajedrez_servidor.py 8080     (otro puerto)
 Luego abre  http://localhost:8000  en el navegador y sube
-stockfish-19.js y stockfish-19.wasm en la pantalla de carga.
+stockfish.js y stockfish.wasm en la pantalla de carga.
 
-Por qué existe: Stockfish 19 usa hilos (SharedArrayBuffer) y el navegador
+Por qué existe: Stockfish usa hilos (SharedArrayBuffer) y el navegador
 solo lo permite si la página se sirve con las cabeceras COOP/COEP.
 Este archivo lleva el HTML del juego dentro y las añade automáticamente.
 Todo funciona sin internet; solo escucha en tu propio dispositivo.
